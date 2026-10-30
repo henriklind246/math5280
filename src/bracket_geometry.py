@@ -1,6 +1,8 @@
 import numpy as np
 import gmsh
 
+"""Run everything with pixi: pixi run python src/bracket_geometry.py"""
+
 gmsh.initialize()
 
 # create geometry model
