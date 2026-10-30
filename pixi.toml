@@ -1,0 +1,14 @@
+[workspace]
+authors = ["Henrik Lind <henriklind246@gmail.com>"]
+channels = ["conda-forge"]
+name = "math5280"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+fenics-dolfinx = ">=0.11.0,<0.12"
+mpich = ">=5.0.1,<6"
+python-gmsh = ">=4.15.2,<5"
+numpy = ">=2.5.4,<3"
