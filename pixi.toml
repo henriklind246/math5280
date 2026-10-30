@@ -2,7 +2,7 @@
 authors = ["Henrik Lind <henriklind246@gmail.com>"]
 channels = ["conda-forge"]
 name = "math5280"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
