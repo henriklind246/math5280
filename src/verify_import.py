@@ -9,7 +9,7 @@ from dolfinx.io import gmsh as gmshio
 
 # check every mesh written by bracket_geometry.py, coarse to fine
 # (names must match the mesh_sizes keys there; files live next to this script)
-mesh_names = ["coarse", "medium", "fine", "extra_fine"]
+mesh_names = ["coarse", "medium", "fine", "extra_fine", "ultra_fine"]
 
 for name in mesh_names:
     mesh_file = Path(__file__).parent / f"bracket_tagged_{name}.msh"
@@ -42,6 +42,6 @@ for name in mesh_names:
 
     # verify expected physical groups
     assert set(np.unique(cell_tags.values)) == {1}
-    assert set(np.unique(facet_tags.values)) == {11, 12, 13}
+    assert set(np.unique(facet_tags.values)) == {11, 12, 13, 14}
 
 print("All meshes and physical tags imported successfully")

@@ -5,7 +5,7 @@ import ufl
 
 from mpi4py import MPI
 from petsc4py import PETSc
-from dolfinx import fem, io, la
+from dolfinx import fem, io, la, mesh
 from dolfinx.io import gmsh as gmshio
 from dolfinx.fem.petsc import LinearProblem
 
@@ -14,6 +14,7 @@ Or import solve() from another script, e.g. mesh_convergence.py"""
 
 FIXED = 11
 LOADED = 12
+FILLET = 14
 
 #####################
 # material properties (aluminum)
@@ -170,6 +171,15 @@ def solve(mesh_file, degree=2):
     local_max = np.max(vm_h.x.array)
     max_vm = msh.comm.allreduce(local_max, op=MPI.MAX)
 
+    # max von Mises in the cells touching the fillet; the rounded fillet has a finite peak stress
+    # that converges with refinement, while sharp edges elsewhere (e.g. where the clamped face meets
+    # a free face) are singular in theory, so the global max is not guaranteed to converge
+    msh.topology.create_connectivity(fdim, msh.topology.dim)
+    fillet_cells = mesh.compute_incident_entities(msh.topology, facet_tags.find(FILLET), fdim, msh.topology.dim)
+    fillet_vm = vm_h.x.array[Q.dofmap.list[fillet_cells].ravel()]
+    local_max_fillet = np.max(fillet_vm) if fillet_vm.size else 0.0
+    max_vm_fillet = msh.comm.allreduce(local_max_fillet, op=MPI.MAX)
+
     # mean stress over bracket volume
     total_stress = msh.comm.allreduce(fem.assemble_scalar(fem.form(von_mises * ufl.dx)), op=MPI.SUM)
     volume = msh.comm.allreduce(fem.assemble_scalar(fem.form(1.0 * ufl.dx(domain=msh))), op=MPI.SUM)
@@ -191,6 +201,7 @@ def solve(mesh_file, degree=2):
         "max_disp": max_disp,
         "mean_loaded_uz": loaded_uz,
         "max_vm": max_vm,
+        "max_vm_fillet": max_vm_fillet,
         "mean_vm": total_stress / volume,
         "num_dofs": V.dofmap.index_map.size_global * V.dofmap.index_map_bs,
         "iterations": problem.solver.getIterationNumber(),
@@ -206,6 +217,7 @@ if __name__ == "__main__":
 
     if MPI.COMM_WORLD.rank == 0:
         print(f"Maximum von Mises: {results['max_vm']/1e6:.4f} MPa")
+        print(f"Maximum von Mises on fillet: {results['max_vm_fillet']/1e6:.4f} MPa")
         print(f"Mean von Mises: {results['mean_vm']/1e6:.4f} MPa")
         print(f"Mean loaded uz: {results['mean_loaded_uz']*1000:.6f} mm")
         print(f"Maximum displacement:{results['max_disp']:.6e} m")
