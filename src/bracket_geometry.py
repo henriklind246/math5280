@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import gmsh
 
@@ -101,23 +103,30 @@ for tag, name, entities in [(11, "Fixed", fixed), (12, "Loaded", loaded), (13, "
         print(name, entities)
 
 
-# generate an unstructured 3d mesh
-gmsh.option.setNumber("Mesh.MeshSizeMax", 0.005)
-gmsh.model.mesh.generate(3)
-gmsh.write("bracket_tagged.msh")
+# generate unstructured 3d meshes from coarse to fine (max element size in meters),
+# each saved next to this script as bracket_tagged_<name>.msh
+mesh_sizes = {"coarse": 0.008, "medium": 0.005, "fine": 0.003, "extra_fine": 0.002}
+out_dir = Path(__file__).parent
 
-# ELEMENT-QUALITY CHECKS - this is important because poorly scored tetrahedra (close to zero hurt FEM solution accuracy)
-types, tags, _ = gmsh.model.mesh.getElements(3)
+for name, mesh_size in mesh_sizes.items():
+    # clear the previous mesh so each one is generated from the geometry alone
+    gmsh.model.mesh.clear()
+    gmsh.option.setNumber("Mesh.MeshSizeMax", mesh_size)
+    gmsh.model.mesh.generate(3)
+    gmsh.write(str(out_dir / f"bracket_tagged_{name}.msh"))
 
-tet_tags = np.concatenate([t for typ, t in zip(types, tags) if typ == 4])
+    # ELEMENT-QUALITY CHECKS - this is important because poorly scored tetrahedra (close to zero hurt FEM solution accuracy)
+    types, tags, _ = gmsh.model.mesh.getElements(3)
 
-quality = gmsh.model.mesh.getElementQualities(tet_tags, "minSICN")
+    tet_tags = np.concatenate([t for typ, t in zip(types, tags) if typ == 4])
 
-print("Min quality:", np.min(quality))
-print("Mean quality,", np.mean(quality))
+    quality = gmsh.model.mesh.getElementQualities(tet_tags, "minSICN")
+
+    print(f"{name} (h={mesh_size}): {len(tet_tags)} tets")
+    print("  Min quality:", np.min(quality))
+    print("  Mean quality,", np.mean(quality))
 
 gmsh.finalize()
 
-# the mesh can be viewed with running the following in the terminal:
-# source .venv/bin/activate
-# gmsh src/bracket.msh
+# a mesh can be viewed with running the following in the terminal:
+# pixi run gmsh src/bracket_tagged_fine.msh

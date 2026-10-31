@@ -221,3 +221,9 @@ __marimo__/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+
+# generated meshes and solver output (regenerate with the scripts in src/)
+*.msh
+*.h5
+*.xdmf
+*.bp
